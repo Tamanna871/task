@@ -1,8 +1,3 @@
-
-
-
-
-
 const express = require('express');
 const axios = require('axios');
 const cors = require('cors'); // Importing CORS for frontend-backend communication
@@ -38,19 +33,31 @@ app.post('/webhook', async (req, res) => {
             return res.status(400).send('Invalid webhook data: answers missing.');
         }
 
-        // Extracting form name and active status from webhook data
-        const formName = req.body.answer.answers.find(a => a.q === "66e1b4a30b1d9bc9e7742192")?.t;
-        const formActiveAnswer = req.body.answer.answers.find(a => a.q === "66e1ad610b1d9bc9e7742130")?.c?.[0]?.t;
+        const { questions } = req.body.form;
+        const answers = req.body.answer.answers;
 
-        console.log('Form Name:', formName);
-        console.log('Form Active Answer:', formActiveAnswer);
+        // Find question IDs for "Form Name" and "Form Active"
+        const formNameQuestion = questions.find(q => q.question === "Form Name");
+        const formActiveQuestion = questions.find(q => q.question === "Form Active");
 
-        if (!formName || !formActiveAnswer) {
-            console.error('Missing formName or formActive status');
-            return res.status(400).send('Form Name or Form Active status is missing.');
+        if (!formNameQuestion || !formActiveQuestion) {
+            console.error('Form Name or Form Active question not found.');
+            return res.status(400).send('Form Name or Form Active question is missing.');
         }
 
-        const isActive = formActiveAnswer === 'Yes';
+        const formNameQuestionId = formNameQuestion._id;
+        const formActiveQuestionId = formActiveQuestion._id;
+
+        // Extract the form name and form active status using dynamic question IDs
+        const formNameAnswer = answers.find(a => a.q === formNameQuestionId);
+        const formActiveAnswer = answers.find(a => a.q === formActiveQuestionId);
+
+        const formName = formNameAnswer?.t; // Extracting form name
+        const isActive = formActiveAnswer?.c?.[0]?.t === 'Yes'; // Extracting form active status (Yes/No)
+
+        console.log('Form Name:', formName);
+        console.log('Form Active Answer:', isActive);
+
 
         if (!isActive) {
             console.log('Form is not active, skipping creation.');
@@ -94,4 +101,5 @@ app.post('/webhook', async (req, res) => {
 app.listen(port, () => {
     console.log(`Server running on port ${port}`);
 });
+
 
